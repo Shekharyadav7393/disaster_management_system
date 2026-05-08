@@ -1,8 +1,17 @@
 backend/.env
 frontend/.env
+
 backend/node_modules/
 frontend/node_modules/
+
 frontend/dist/
+dist/
+
 backend/uploads/
+
 *.log
 *.tmp
+
+.env
+.env.local
+node_modules
