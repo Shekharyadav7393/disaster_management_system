@@ -39,6 +39,7 @@ const settingSchema = new mongoose.Schema({
     bankEnabled: { type: Boolean, default: false },
     orgName: { type: String, default: "" },
     orgDescription: { type: String, default: "" },
+    paymentLink: { type: String, default: "" },
   },
   updatedAt: { type: Date, default: Date.now },
 });

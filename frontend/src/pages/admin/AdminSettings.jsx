@@ -32,6 +32,7 @@ const emptyPayment = () => ({
   razorpayKeyId: "",
   razorpayKeySecret: "",
   razorpayEnabled: false,
+  paymentLink: "",
   upiId: "",
   upiName: "",
   upiEnabled: false,
@@ -49,6 +50,7 @@ const normalizePaymentForForm = (pa = {}) => ({
   razorpayKeyId:     pa.razorpayKeyId     || "",
   razorpayKeySecret: pa.razorpayKeySecret || "",
   razorpayEnabled:   pa.razorpayEnabled   === true,
+  paymentLink:       pa.paymentLink       || "",
   upiId:             pa.upiId             || "",
   upiName:           pa.upiName           || "",
   upiEnabled:        pa.upiEnabled        === true,
@@ -314,6 +316,18 @@ const AdminSettings = () => {
                           background: "none", border: "none", cursor: "pointer", fontSize: 16, color: "var(--text-muted)" }}>
                         {showSecrets.rzSecret ? "🙈" : "👁️"}
                       </button>
+                    </div>
+                  </div>
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <label className="label">Hosted Payment Link</label>
+                    <input
+                      className="input"
+                      value={payment.paymentLink}
+                      placeholder="https://rzp.io/rzp/your-payment-link"
+                      onChange={(e) => setPaymentField("paymentLink", e.target.value)}
+                    />
+                    <div className="muted" style={{ marginTop: 6, fontSize: 12 }}>
+                      Only the gateway account keys are required for in-app checkout. This link is optional and will appear on the public Donate page.
                     </div>
                   </div>
                 </div>

@@ -19,6 +19,24 @@ const getPasswordStrength = (pw) => {
   return { pct: 100, color: "#10b981", label: "Excellent" };
 };
 
+const getRequestErrorMessage = (err, fallback) => {
+  const data = err?.response?.data;
+
+  if (data?.errors && Array.isArray(data.errors)) {
+    return data.errors.join(", ");
+  }
+
+  if (data?.message) {
+    return data.message;
+  }
+
+  if (!err?.response) {
+    return "Unable to connect to the server. Please try again in a moment.";
+  }
+
+  return err?.message || fallback;
+};
+
 const Login = () => {
   const { user, login, loading } = useAuth();
   const navigate = useNavigate();
@@ -85,12 +103,7 @@ const Login = () => {
       setMode("signin");
       setForm((f) => ({ ...f, name: "", password: "", phone: "" }));
     } catch (err) {
-      const data = err?.response?.data;
-      if (data?.errors && Array.isArray(data.errors)) {
-        setError(data.errors.join(", "));
-      } else {
-        setError(data?.message || "Registration failed.");
-      }
+      setError(getRequestErrorMessage(err, "Registration failed."));
     } finally {
       setRegistering(false);
     }

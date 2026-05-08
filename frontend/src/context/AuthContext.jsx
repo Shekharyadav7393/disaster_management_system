@@ -21,6 +21,18 @@ const readStoredToken = () => {
   }
 };
 
+const getAuthErrorMessage = (err) => {
+  if (err?.response?.data?.message) {
+    return err.response.data.message;
+  }
+
+  if (!err?.response) {
+    return "Unable to connect to the server. Please try again in a moment.";
+  }
+
+  return err?.message || "Login failed";
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(readStoredUser());
   const [token, setToken] = useState(readStoredToken());
@@ -62,7 +74,7 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       return {
         ok: false,
-        message: err?.response?.data?.message || "Login failed",
+        message: getAuthErrorMessage(err),
       };
     } finally {
       setLoading(false);

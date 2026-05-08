@@ -66,6 +66,14 @@ const PublicDonate = () => {
     }
 
     setError("");
+
+    const directPaymentLink = settings?.paymentAccount?.paymentLink || "";
+    if (!settings?.paymentAccount?.razorpayEnabled && directPaymentLink) {
+      window.open(directPaymentLink, "_blank", "noopener,noreferrer");
+      setSuccess("Secure payment page opened in a new tab. Complete your donation there.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -211,6 +219,7 @@ const PublicDonate = () => {
   };
 
   const paymentSettings = settings?.paymentAccount || {};
+  const hostedPaymentLink = paymentSettings.paymentLink || "";
 
   return (
     <PublicLayout>
@@ -237,6 +246,25 @@ const PublicDonate = () => {
           </div>
         )}
         {error && <div className="alert alert-error">{error}</div>}
+
+        {hostedPaymentLink && (
+          <div className="card" style={{ marginBottom: 16 }}>
+            <div className="card-title" style={{ marginBottom: 8 }}>
+              Quick Payment Link
+            </div>
+            <p style={{ color: "var(--text-2)", fontSize: 14, marginBottom: 12 }}>
+              If you prefer a hosted checkout page, use the secure payment link configured by the admin team.
+            </p>
+            <a
+              href={hostedPaymentLink}
+              target="_blank"
+              rel="noreferrer"
+              className="btn btn-primary"
+            >
+              Open Secure Payment Page
+            </a>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           <div className="form-section">
@@ -296,8 +324,10 @@ const PublicDonate = () => {
               <>
                 {!paymentSettings.razorpayEnabled && (
                   <div className="alert alert-warning" style={{ marginBottom: 16 }}>
-                    Online payment gateway is not configured yet. Submitting now will record a
-                    demo donation, or you can use the direct UPI / bank details below.
+                    Online gateway keys are not configured yet.
+                    {hostedPaymentLink
+                      ? " Please use the secure payment link above or the fallback payment details below."
+                      : " Submitting now will record a demo donation, or you can use the fallback payment details below."}
                   </div>
                 )}
                 <div className="form-group">
@@ -422,7 +452,9 @@ const PublicDonate = () => {
             {loading
               ? "Processing..."
               : form.donationType === "MONEY"
-                ? `Pay INR ${Number(form.amount || 0).toLocaleString()}`
+                ? !paymentSettings.razorpayEnabled && hostedPaymentLink
+                  ? "Open Secure Payment Page"
+                  : `Pay INR ${Number(form.amount || 0).toLocaleString()}`
                 : "Submit Item Donation"}
           </button>
         </form>

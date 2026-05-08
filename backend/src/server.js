@@ -49,17 +49,24 @@ const DEFAULT_CORS_ORIGINS = [
   "http://localhost:5173",
   "http://localhost:3000",
   "https://disaster-management-system-1-a2bz.onrender.com",
+  "https://disaster-management-ay4u.onrender.com",
 ];
+
+const parseOriginList = (...values) =>
+  values
+    .flatMap((value) => String(value || "").split(","))
+    .map((value) => value.trim())
+    .map((value) => value.replace(/\/+$/, ""))
+    .filter(Boolean);
 
 const corsOrigins = [
   ...new Set(
-    [
-      ...DEFAULT_CORS_ORIGINS,
-      ...(process.env.CORS_ORIGINS || "")
-        .split(",")
-        .map((value) => value.trim())
-        .filter(Boolean),
-    ]
+    parseOriginList(
+      DEFAULT_CORS_ORIGINS,
+      process.env.CORS_ORIGINS,
+      process.env.FRONTEND_URL,
+      process.env.FRONTEND_URLS
+    )
   ),
 ];
 

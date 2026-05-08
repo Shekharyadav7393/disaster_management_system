@@ -9,6 +9,14 @@ const isLocalhost =
   typeof window !== "undefined" &&
   ["localhost", "127.0.0.1"].includes(window.location.hostname);
 
+if (typeof window !== "undefined") {
+  const redirectPath = sessionStorage.getItem("dms_redirect_path");
+  if (redirectPath) {
+    sessionStorage.removeItem("dms_redirect_path");
+    window.history.replaceState(null, "", redirectPath);
+  }
+}
+
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>
