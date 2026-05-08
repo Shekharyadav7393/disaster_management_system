@@ -1,0 +1,9 @@
+{
+  "name": "Disaster Management System",
+  "short_name": "DisasterMS",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#0f172a",
+  "description": "Emergency response, alerts, relief coordination, and citizen reporting."
+}

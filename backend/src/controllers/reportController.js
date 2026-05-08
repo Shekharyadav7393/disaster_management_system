@@ -1,0 +1,225 @@
+import Report from "../models/Report.js";
+import Alert from "../models/Alert.js";
+import { validateAndAnalyzeRequest, validateAndAnalyzeReport } from "../services/ai.service.js";
+import { autoDispatchRescueTeam } from "../services/autonomousEngine.js";
+import { getSafetyInstructions } from "../utils/safetyInstructions.js";
+import { normalizePointLocation } from "../utils/location.js";
+import { removeStoredMedia, storeUploadedFile } from "../services/media.service.js";
+import User from "../models/User.js";
+
+/**
+ * GET /api/reports
+ */
+export const getReports = async (req, res) => {
+  try {
+    const { status, disasterType, severity } = req.query;
+    const query = {};
+    if (status && status !== "all") query.status = status;
+    if (disasterType && disasterType !== "all") query.disasterType = disasterType;
+    if (severity && severity !== "all") query.severity = severity;
+
+    const items = await Report.find(query).sort({ createdAt: -1 });
+    res.json(items);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/**
+ * GET /api/reports/mine
+ */
+export const getMyReports = async (req, res) => {
+  try {
+    const items = await Report.find({ userId: req.user?._id }).sort({ createdAt: -1 });
+    res.json(items);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/**
+ * GET /api/reports/:id
+ */
+export const getReportById = async (req, res) => {
+  try {
+    const item = await Report.findById(req.params.id);
+    if (!item) return res.status(404).json({ message: "Report not found" });
+    res.json(item);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/**
+ * POST /api/reports
+ */
+export const createReport = async (req, res) => {
+  try {
+    const io = req.app.get("io");
+    const imageFile = req.files?.image?.[0];
+    const videoFile = req.files?.video?.[0];
+    const [imageUrl, videoUrl] = await Promise.all([
+      storeUploadedFile(imageFile, { type: "reports/images" }),
+      storeUploadedFile(videoFile, { type: "reports/videos" }),
+    ]);
+
+    const report = new Report({
+      ...req.body,
+      userId: req.user?._id,
+      reporterName: req.user?.name || req.body.reporterName || "Anonymous",
+      imageUrl,
+      videoUrl,
+      location: {
+        ...req.body.location,
+        address: req.body.address || req.body.location?.address || "",
+        city: req.body.city || req.body.location?.city || "",
+        state: req.body.state || req.body.location?.state || "",
+        lat: parseFloat(req.body.lat) || 0,
+        lng: parseFloat(req.body.lng) || 0,
+        coordinates: {
+          lat: parseFloat(req.body.lat) || 0,
+          lng: parseFloat(req.body.lng) || 0
+        }
+      }
+    });
+
+    // AI Validation and Analysis
+    console.log(`[AUTONOMOUS] Validating and analyzing report: ${report.title}...`);
+    const inputText = `${report.title} ${report.description}`;
+    const validation = await validateAndAnalyzeRequest(inputText, report.location);
+
+    if (validation.isValid === false || validation.isSpam === true) {
+      if (req.user?._id) {
+        await User.findByIdAndUpdate(req.user._id, { isBlocked: true, trustScore: 0 });
+      }
+      return res.status(403).json({ message: "Your account has been blocked for spreading misinformation or spam alerts." });
+    }
+
+    report.aiAnalysis = {
+      isValid: validation.isValid,
+      severity: validation.severity,
+      isEmergency: validation.isEmergency,
+      confidence: 0.8, // Placeholder, can be enhanced
+      summary: `Severity: ${validation.severity}, Emergency: ${validation.isEmergency}`,
+      suggestedAction: validation.isEmergency ? "Auto-verify, alert, and dispatch" : "Manual review needed"
+    };
+
+    // AUTO VERIFICATION: If HIGH or CRITICAL, mark as verified automatically
+    if (validation.severity === "HIGH" || validation.severity === "CRITICAL") {
+      report.status = "verified";
+      report.severity = validation.severity.toLowerCase();
+      console.log(`[AUTONOMOUS] Report auto-verified as ${validation.severity}.`);
+    } else {
+      report.severity = validation.severity.toLowerCase();
+    }
+
+    await report.save();
+
+    // AUTO ALERT GENERATION: For HIGH/CRITICAL
+    if (validation.severity === "HIGH" || validation.severity === "CRITICAL") {
+      const alert = new Alert({
+        title: `AUTO-ALERT: ${report.disasterType.toUpperCase()} Report`,
+        description: `Automated alert from citizen report: ${report.title}`,
+        message: `Emergency report received: ${report.description}. Severity: ${validation.severity}`,
+        type: report.disasterType,
+        severity: validation.severity.toLowerCase(),
+        status: "active",
+        location: normalizePointLocation(report.location, report.location),
+        safetyInstructions: getSafetyInstructions(report.disasterType).instructions.join(" "),
+        isAutoGenerated: true
+      });
+
+      await alert.save();
+      console.log(`[AUTONOMOUS] Alert generated: ${alert._id}`);
+
+      if (io) {
+        io.emit("new_alert", alert);
+        io.emit("NEW_ALERT", alert); // As per spec
+      }
+
+      // AUTO DISPATCH: Assign nearest rescue team
+      const dispatchLocation = {
+        lat: report.location.lat,
+        lng: report.location.lng,
+        address: report.location.address || "Reported Location"
+      };
+
+      const missions = await autoDispatchRescueTeam(
+        io,
+        dispatchLocation,
+        report.disasterType,
+        validation.severity.toLowerCase(),
+        `REPORT-${report._id}`,
+        { message: inputText, peopleCount: 1 }
+      );
+
+      if (missions && missions.length > 0) {
+        console.log(`[AUTONOMOUS] Missions created and teams dispatched: ${missions.map(m => m._id).join(', ')}`);
+
+        if (io) {
+          missions.forEach(mission => {
+            io.emit("MISSION_CREATED", mission);
+          });
+        }
+      }
+    }
+
+    if (io) {
+      io.emit("new_report", report);
+    }
+
+    res.status(201).json({ report });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/**
+ * GET /api/reports/verified (Public)
+ */
+export const getVerifiedReports = async (req, res) => {
+  try {
+    const items = await Report.find({ status: "verified" }).sort({ createdAt: -1 }).limit(20);
+    res.json(items);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/**
+ * PATCH /api/reports/:id/status
+ */
+export const updateReportStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    const report = await Report.findByIdAndUpdate(req.params.id, { status }, { new: true });
+    if (!report) return res.status(404).json({ message: "Report not found" });
+    res.json(report);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/**
+ * DELETE /api/reports/:id/media
+ */
+export const deleteReportMedia = async (req, res) => {
+  try {
+    const existing = await Report.findById(req.params.id);
+    if (!existing) return res.status(404).json({ message: "Report not found" });
+
+    await Promise.all([
+      removeStoredMedia(existing.imageUrl || ""),
+      removeStoredMedia(existing.videoUrl || ""),
+    ]);
+
+    const report = await Report.findByIdAndUpdate(
+      req.params.id,
+      { imageUrl: "", videoUrl: "" },
+      { new: true }
+    );
+    res.json({ message: "Report media removed" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

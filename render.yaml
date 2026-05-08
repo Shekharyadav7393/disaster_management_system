@@ -1,0 +1,48 @@
+services:
+  - type: pserv
+    name: disaster-management-mongodb
+    runtime: docker
+    repo: https://github.com/render-examples/mongodb
+    branch: main
+    autoDeployTrigger: off
+    disk:
+      name: data
+      mountPath: /data/db
+      sizeGB: 10
+
+  - type: web
+    name: disaster-management-system
+    runtime: node
+    repo: https://github.com/princegupta214214/Disaster-Management-System.git
+    branch: main
+    autoDeployTrigger: commit
+    plan: starter
+    healthCheckPath: /api/health
+    buildCommand: npm install --prefix backend && npm install --prefix frontend && VITE_API_URL= VITE_WS_URL= npm run build --prefix frontend
+    startCommand: npm start --prefix backend
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DB_NAME
+        value: disaster_management_system
+      - key: MONGO_HOST
+        fromService:
+          type: pserv
+          name: disaster-management-mongodb
+          property: host
+      - key: MONGO_PORT
+        value: "27017"
+      - key: TOKEN_SECRET
+        generateValue: true
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: OPENWEATHER_API_KEY
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: CLOUDINARY_FOLDER
+        value: disaster-management-system
