@@ -2,6 +2,8 @@ import Team from "../models/Team.js";
 import Mission from "../models/Mission.js";
 import Alert from "../models/Alert.js";
 import Notification from "../models/Notification.js";
+import User from "../models/User.js";
+import mongoose from "mongoose";
 import Sensor from "../models/Sensor.js";
 import SensorReading from "../models/SensorReading.js";
 import Timeline from "../models/Timeline.js";
@@ -161,15 +163,19 @@ export const autoDispatchRescueTeam = async (
  */
 const handleAutoAlert = async (io, { type, severity, location, reasoning = "" }) => {
   const normalizedLocation = normalizePointLocation(location, location);
+  const adminUser = await User.findOne({ role: "admin" });
   const alert = new Alert({
-    title: `AUTO-DETECT: ${type.toUpperCase()} Risk`,
-    description: reasoning || "Automatic detection based on environmental sensor thresholds.",
-    type,
-    severity,
-    status: "active",
-    location: normalizedLocation,
-    safetyInstructions: `Automated safety advice for ${type}.`,
-    source: 'auto-ai'
+    userId: adminUser?._id || new mongoose.Types.ObjectId(),
+    message: `AUTO-DETECT: ${type.toUpperCase()} Risk. ${reasoning || "Automatic detection based on environmental sensor thresholds."}`,
+    urgency: severity || "medium",
+    status: "sent",
+    location: {
+      type: "Point",
+      coordinates: normalizedLocation.coordinates,
+      latitude: normalizedLocation.coordinates[1],
+      longitude: normalizedLocation.coordinates[0],
+    },
+    safetyInstructions: `Automated safety advice for ${type}.`
   });
 
   await alert.save();
@@ -301,20 +307,20 @@ export const syncRealWorldSensors = async (io) => {
     });
 
     if (!recentQuake) {
-      const severity = earthquake.magnitude > 6 ? "critical" : earthquake.magnitude > 5 ? "high" : "medium";
+      const adminUser = await User.findOne({ role: "admin" });
+      const urgency = earthquake.magnitude > 6 ? "critical" : earthquake.magnitude > 5 ? "high" : "medium";
       const alert = new Alert({
-        title: `SEISMIC ALERT: ${earthquake.magnitude} Mag Earthquake`,
-        description: `Automatically detected near ${earthquake.place}.`,
-        type: "earthquake",
-        severity,
-        status: "active",
-        location: normalizePointLocation({
-          lat: earthquake.coordinates.lat,
-          lng: earthquake.coordinates.lng,
-          address: earthquake.place,
-        }),
-        safetyInstructions: "Seek open ground. Avoid elevators.",
-        source: 'auto-ai'
+        userId: adminUser?._id || new mongoose.Types.ObjectId(),
+        message: `SEISMIC ALERT: ${earthquake.magnitude} Mag Earthquake. Automatically detected near ${earthquake.place}.`,
+        urgency,
+        status: "sent",
+        location: {
+          type: "Point",
+          coordinates: [earthquake.coordinates.lng, earthquake.coordinates.lat],
+          latitude: earthquake.coordinates.lat,
+          longitude: earthquake.coordinates.lng,
+        },
+        safetyInstructions: "Seek open ground. Avoid elevators."
       });
 
       await alert.save();
