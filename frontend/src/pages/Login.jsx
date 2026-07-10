@@ -6,9 +6,6 @@ import { getRedirectPath } from "../utils/authUtils.js";
 import { useGoogleLogin } from "@react-oauth/google";
 import "./Login.css";
 
-const GITHUB_CLIENT_ID = import.meta.env.VITE_GITHUB_CLIENT_ID || "dummy";
-const GITHUB_AUTH_URL = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&scope=user:email`;
-
 const getRequestErrorMessage = (err, fallback) => {
   const data = err?.response?.data;
   if (data?.errors && Array.isArray(data.errors)) {
@@ -34,7 +31,7 @@ const Login = () => {
   }, [user, navigate]);
 
   const [mode, setMode] = useState("signin");
-  const [form, setForm] = useState({ org: "", name: "", email: "", password: "", phone: "" });
+  const [form, setForm] = useState({ name: "", email: "", password: "", phone: "" });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [registering, setRegistering] = useState(false);
@@ -84,7 +81,7 @@ const Login = () => {
         password: form.password,
         phone: form.phone,
       });
-      setSuccess("Account created successfully! Please log in.");
+      setSuccess("Account created successfully! Please sign in.");
       setMode("signin");
       setForm((f) => ({ ...f, name: "", password: "", phone: "" }));
     } catch (err) {
@@ -96,8 +93,6 @@ const Login = () => {
 
   const googleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
-      // In our setup, externalLogin might expect credential or access_token. 
-      // We pass the token directly as access_token.
       const result = await externalLogin('google', { access_token: tokenResponse.access_token });
       if (result.ok) navigate(getRedirectPath(result.user?.role));
       else setError(result.message || "Google Login Failed");
@@ -109,115 +104,134 @@ const Login = () => {
     <div className="modern-auth-container">
       <div className="modern-auth-card">
         
-        {/* WAVY HEADER */}
-        <div className="modern-auth-header-wave">
-          <div className="modern-auth-header-bubble"></div>
-          <div className="modern-auth-logo-box">
-            DisasterMS
-          </div>
-          <div className="modern-auth-welcome-small">NICE TO SEE YOU AGAIN</div>
-          <h1 className="modern-auth-welcome-large">
-            {mode === "signin" ? "WELCOME BACK" : "JOIN THE NETWORK"}
+        {/* HEADER */}
+        <div className="modern-auth-header">
+          <h1 className="modern-auth-title">
+            {mode === "signin" ? "WELCOME BACK" : "CREATE ACCOUNT"}
           </h1>
+          <p className="modern-auth-subtitle">
+            {mode === "signin" 
+              ? "Welcome back! Please enter your details." 
+              : "Register details to join DisasterMS."}
+          </p>
         </div>
+
+        {/* ALERTS */}
+        {error && <div className="modern-auth-alert modern-auth-alert-error">{error}</div>}
+        {success && <div className="modern-auth-alert modern-auth-alert-success">{success}</div>}
 
         {/* FORM CONTAINER */}
         <div className="modern-auth-form-container">
-          <h2 className="modern-auth-section-title">
-            {mode === "signin" ? "USER LOGIN" : "USER REGISTRATION"}
-          </h2>
-
-          {error && <div className="modern-auth-alert modern-auth-alert-error">⚠️ {error}</div>}
-          {success && <div className="modern-auth-alert modern-auth-alert-success">✅ {success}</div>}
-
           <form onSubmit={mode === "signin" ? handleLogin : handleRegister}>
             
-            {mode === "signin" && (
-              <div className="modern-auth-field">
-                <div className={`modern-auth-input-wrapper ${fieldErrors.org ? "error" : ""}`}>
-                  <span className="modern-auth-icon">🏢</span>
-                  <select className="modern-auth-input" name="org" value={form.org} onChange={handleChange}>
-                    <option value="" disabled>Select organization to log into</option>
-                    <option value="dms_global">DisasterMS Global</option>
-                    <option value="volunteer_force">Volunteer Force</option>
-                  </select>
-                  <span style={{color: '#94a3b8', fontSize: '10px'}}>▼</span>
-                </div>
-              </div>
-            )}
-
             {mode === "signup" && (
               <>
                 <div className="modern-auth-field">
+                  <label className="modern-auth-label">Name</label>
                   <div className={`modern-auth-input-wrapper ${fieldErrors.name ? "error" : ""}`}>
-                    <span className="modern-auth-icon">👤</span>
-                    <input className="modern-auth-input" name="name" placeholder="Full Name" value={form.name} onChange={handleChange} required />
+                    <input 
+                      className="modern-auth-input" 
+                      name="name" 
+                      placeholder="Enter your name" 
+                      value={form.name} 
+                      onChange={handleChange} 
+                      required 
+                    />
                   </div>
                 </div>
+
                 <div className="modern-auth-field">
+                  <label className="modern-auth-label">Phone</label>
                   <div className={`modern-auth-input-wrapper ${fieldErrors.phone ? "error" : ""}`}>
-                    <span className="modern-auth-icon">📱</span>
-                    <input className="modern-auth-input" name="phone" placeholder="Phone Number" value={form.phone} onChange={handleChange} required />
+                    <input 
+                      className="modern-auth-input" 
+                      name="phone" 
+                      type="tel"
+                      placeholder="Enter your phone number" 
+                      value={form.phone} 
+                      onChange={handleChange} 
+                      required 
+                    />
                   </div>
                 </div>
               </>
             )}
 
             <div className="modern-auth-field">
+              <label className="modern-auth-label">Email</label>
               <div className={`modern-auth-input-wrapper ${fieldErrors.email ? "error" : ""}`}>
-                <span className="modern-auth-icon">👤</span>
-                <input className="modern-auth-input" name="email" type="email" placeholder="Username (Email)" value={form.email} onChange={handleChange} required />
+                <input 
+                  className="modern-auth-input" 
+                  name="email" 
+                  type="email" 
+                  placeholder="Enter your email" 
+                  value={form.email} 
+                  onChange={handleChange} 
+                  required 
+                />
               </div>
             </div>
 
             <div className="modern-auth-field">
+              <label className="modern-auth-label">Password</label>
               <div className={`modern-auth-input-wrapper ${fieldErrors.password ? "error" : ""}`}>
-                <span className="modern-auth-icon">🔑</span>
-                <input className="modern-auth-input" name="password" type="password" placeholder="Password" value={form.password} onChange={handleChange} required />
+                <input 
+                  className="modern-auth-input" 
+                  name="password" 
+                  type="password" 
+                  placeholder="*********" 
+                  value={form.password} 
+                  onChange={handleChange} 
+                  required 
+                />
               </div>
             </div>
 
             {mode === "signin" && (
               <div className="modern-auth-options">
                 <label className="modern-auth-remember">
-                  <input type="checkbox" style={{accentColor: '#1e3a8a'}} /> Remember me
+                  <input type="checkbox" /> Remember me
                 </label>
-                <a href="/forgot-password" className="modern-auth-forgot">Forgot password?</a>
+                <a href="/forgot-password" className="modern-auth-forgot">Forgot password</a>
               </div>
             )}
 
-            <button type="submit" className="modern-auth-btn-primary" disabled={loading || registering} style={{marginTop: mode === "signup" ? '20px' : '0'}}>
-              {loading || registering ? "PROCESSING..." : (mode === "signin" ? "LOGIN" : "REGISTER")}
+            <button type="submit" className="modern-auth-btn-primary" disabled={loading || registering}>
+              {loading || registering ? "Please wait..." : (mode === "signin" ? "Sign in" : "Sign up")}
             </button>
           </form>
 
           {mode === "signin" && (
-            <>
-              <div className="modern-auth-divider">Or login with</div>
-
-              <div className="modern-auth-social-row">
-                <button type="button" className="modern-auth-btn-social" onClick={() => googleLogin()}>
-                  GOOGLE
-                </button>
-                <button type="button" className="modern-auth-btn-social" onClick={() => window.location.href = GITHUB_AUTH_URL}>
-                  GITHUB
-                </button>
-              </div>
-
-              <button type="button" className="modern-auth-btn-provider" onClick={() => setMode("signup")}>
-                CREATE NEW ACCOUNT
-              </button>
-            </>
-          )}
-
-          {mode === "signup" && (
-            <div className="modern-auth-switch">
-              Already have an account? 
-              <button type="button" className="modern-auth-switch-btn" onClick={() => { setMode("signin"); setError(""); setSuccess(""); setFieldErrors({}); }}>
-                Sign In
+            <div className="modern-auth-social-area">
+              <button type="button" className="modern-auth-btn-social-google" onClick={() => googleLogin()}>
+                <svg className="google-icon-svg" viewBox="0 0 24 24">
+                  <path fill="#EA4335" d="M12 5.04c1.62 0 3.08.56 4.22 1.65l3.16-3.16C17.47 1.7 14.96 1 12 1 7.37 1 3.4 3.65 1.5 7.5l3.65 2.83C6.01 7.16 8.78 5.04 12 5.04z" />
+                  <path fill="#4285F4" d="M23.49 12.27c0-.81-.07-1.59-.2-2.34H12v4.45h6.45c-.28 1.47-1.1 2.71-2.35 3.55l3.64 2.82c2.13-1.97 3.75-4.87 3.75-8.52z" />
+                  <path fill="#FBBC05" d="M5.15 14.67c-.24-.71-.38-1.47-.38-2.27s.14-1.56.38-2.27L1.5 7.3C.54 9.22 0 11.35 0 13.6c0 2.25.54 4.38 1.5 6.3l3.65-2.83c-.24-.71-.38-1.47-.38-2.27z" />
+                  <path fill="#34A853" d="M12 23c3.24 0 5.97-1.07 7.96-2.91l-3.64-2.82c-1.01.68-2.3 1.09-3.95 1.09-3.22 0-5.99-2.12-6.96-5.29L1.5 16.9C3.4 20.75 7.37 23 12 23z" />
+                </svg>
+                Sign in with Google
               </button>
             </div>
           )}
+
+          <div className="modern-auth-switch">
+            {mode === "signin" ? (
+              <>
+                Don't have an account?{" "}
+                <button type="button" className="modern-auth-switch-btn" onClick={() => { setMode("signup"); setError(""); setSuccess(""); setFieldErrors({}); }}>
+                  Sign up to free!
+                </button>
+              </>
+            ) : (
+              <>
+                Already have an account?{" "}
+                <button type="button" className="modern-auth-switch-btn" onClick={() => { setMode("signin"); setError(""); setSuccess(""); setFieldErrors({}); }}>
+                  Sign in!
+                </button>
+              </>
+            )}
+          </div>
 
         </div>
       </div>
