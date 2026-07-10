@@ -46,6 +46,7 @@ export const updateMyProfile = async (req, res) => {
       user.location = normalizePointLocation(req.body.location, user.location?.toObject?.() || user.location);
     }
     if (req.body.password) user.password = req.body.password; // Hash in real app!
+    if (req.body.fcmToken !== undefined) user.fcmToken = req.body.fcmToken;
 
     await user.save();
     

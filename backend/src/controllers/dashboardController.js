@@ -9,6 +9,7 @@ import Sensor from "../models/Sensor.js";
 import SensorReading from "../models/SensorReading.js";
 import { isVideoUrl } from "../services/media.service.js";
 import { fetchSeismicData } from "../services/sensor.service.js";
+import { getRealtimeWeather } from "../utils/weather.js";
 
 /**
  * GET /api/dashboard/overview (Alias for getStats)
@@ -218,8 +219,12 @@ export const getExternalSummary = async (req, res) => {
       }
     }
 
-    res.json({
-      weather: {
+    let weatherData = null;
+    try {
+      weatherData = await getRealtimeWeather("New Delhi");
+    } catch (err) {
+      console.log("Weather API failed, using fallback:", err.message);
+      weatherData = {
         temp: reading?.metrics?.temperature || 25,
         humidity: 60,
         windSpeed: 0,
@@ -228,7 +233,11 @@ export const getExternalSummary = async (req, res) => {
           reading?.metrics?.waterLevel > 80
             ? "River and drainage levels are elevated. Keep rescue resources ready."
             : "",
-      },
+      };
+    }
+
+    res.json({
+      weather: weatherData,
       threats: activeAlerts.map((alert) => ({
         type: alert.type,
         severity: alert.severity,

@@ -1,5 +1,9 @@
 import Notification from "../models/Notification.js";
 import Alert from "../models/Alert.js";
+import User from "../models/User.js";
+import { sendMulticastPushNotification, sendPushNotification } from "../utils/firebase.js";
+import { sendTelegramAlert } from "../utils/telegram.js";
+import logger from "../utils/logger.js";
 
 /**
  * GET /api/notifications/public
@@ -57,8 +61,32 @@ export const createNotification = async (req, res) => {
         });
         await alert.save();
         io.emit("new_alert", alert);
+        
+        // Telegram Alert for Critical Broadcasts
+        sendTelegramAlert(`🚨 *CRITICAL ALERT*\n\n*${notification.title}*\n${notification.message}`).catch(err => logger.error(err));
       }
     }
+
+    // Firebase Push Notification logic
+    setTimeout(async () => {
+      try {
+        if (notification.targetUserId) {
+          const targetUser = await User.findById(notification.targetUserId).select("fcmToken");
+          if (targetUser && targetUser.fcmToken) {
+            await sendPushNotification(targetUser.fcmToken, notification.title, notification.message);
+          }
+        } else {
+          // Broadcast to all users with tokens
+          const usersWithTokens = await User.find({ fcmToken: { $exists: true, $ne: "" } }).select("fcmToken");
+          const tokens = usersWithTokens.map(u => u.fcmToken);
+          if (tokens.length > 0) {
+            await sendMulticastPushNotification(tokens, notification.title, notification.message);
+          }
+        }
+      } catch (err) {
+        logger.error(`Push notification failed: ${err.message}`);
+      }
+    }, 0);
 
     res.status(201).json(notification);
   } catch (error) {

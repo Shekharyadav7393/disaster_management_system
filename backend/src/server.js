@@ -9,6 +9,11 @@ import { Server as SocketIOServer } from "socket.io";
 import cron from "node-cron";
 import rateLimit from "express-rate-limit";
 import { fileURLToPath } from "url";
+import helmet from "helmet";
+import mongoSanitize from "express-mongo-sanitize";
+import xss from "xss-clean";
+import errorHandler from "./middleware/errorHandler.js";
+import morganMiddleware from "./middleware/morganMiddleware.js";
 
 // --- Configuration & Helpers ---
 const __filename = fileURLToPath(import.meta.url);
@@ -41,6 +46,7 @@ import publicRoutes from "./routes/publicRoutes.js";
 import disasterTypeRoutes from "./routes/disasterTypeRoutes.js";
 import requestRoutes from "./routes/requestRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
+import aiRoutes from "./routes/aiRoutes.js";
 import User from "./models/User.js";
 
 dotenv.config();
@@ -109,10 +115,15 @@ const createApp = () => {
   app.set("io", io);
 
   /* ── Global Middleware ── */
+  app.use(helmet({
+    crossOriginResourcePolicy: false, // allow images to be loaded
+  }));
   app.use(cors(corsOptions));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
-  // app.use(morgan("dev"));
+  app.use(mongoSanitize());
+  app.use(xss());
+  app.use(morganMiddleware);
   app.use("/uploads", express.static(UPLOAD_DIR));
   if (hasFrontendBuild) {
     app.use(express.static(FRONTEND_DIST_DIR));
@@ -184,6 +195,7 @@ const createApp = () => {
   app.use("/api/disaster-types", disasterTypeRoutes);
   app.use("/api/requests", requestRoutes);
   app.use("/api/reviews", reviewRoutes);
+  app.use("/api/ai", aiRoutes);
 
   if (hasFrontendBuild) {
     app.get("*", (req, res, next) => {
@@ -228,10 +240,7 @@ const createApp = () => {
   });
 
   /* ── Global Error Handler ── */
-  app.use((err, _req, res, _next) => {
-    console.error(err);
-    res.status(500).json({ message: err.message || "Server error" });
-  });
+  app.use(errorHandler);
 
   return {
     app,

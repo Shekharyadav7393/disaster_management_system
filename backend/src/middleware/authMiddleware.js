@@ -7,25 +7,48 @@ const TOKEN_SECRET = process.env.TOKEN_SECRET || "disasterms-local-secret";
 
 /* ───────────── Token Utilities ───────────── */
 
+import jwt from "jsonwebtoken";
+
 export const signToken = (user) => {
-  const payload = Buffer.from(
-    JSON.stringify({ id: user._id, role: user.role })
-  ).toString("base64url");
-  const signature = createHmac("sha256", TOKEN_SECRET)
-    .update(payload)
-    .digest("base64url");
-  return `${payload}.${signature}`;
+  return jwt.sign(
+    { id: user._id, role: user.role },
+    TOKEN_SECRET,
+    { expiresIn: process.env.JWT_EXPIRE || "15m" }
+  );
+};
+
+export const signRefreshToken = (user) => {
+  return jwt.sign(
+    { id: user._id },
+    process.env.REFRESH_TOKEN_SECRET || "disasterms-refresh-secret",
+    { expiresIn: process.env.JWT_REFRESH_EXPIRE || "7d" }
+  );
 };
 
 export const verifyToken = (token) => {
   if (!token) return null;
-  const [payload, signature] = String(token).split(".");
-  if (!payload || !signature) return null;
-  const expected = createHmac("sha256", TOKEN_SECRET)
-    .update(payload)
-    .digest("base64url");
-  if (expected !== signature) return null;
-  return JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+
+  try {
+    // Attempt standard JWT verify first
+    return jwt.verify(token, TOKEN_SECRET);
+  } catch (error) {
+    // If it fails, fallback to legacy crypto method for backward compatibility
+    const parts = String(token).split(".");
+    if (parts.length === 2) {
+      const [payload, signature] = parts;
+      const expected = createHmac("sha256", TOKEN_SECRET)
+        .update(payload)
+        .digest("base64url");
+      if (expected === signature) {
+        try {
+          return JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+        } catch (e) {
+          return null;
+        }
+      }
+    }
+    return null;
+  }
 };
 
 /* ───────────── Middleware Functions ───────────── */

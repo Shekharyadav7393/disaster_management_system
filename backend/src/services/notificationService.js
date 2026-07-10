@@ -1,4 +1,8 @@
 import Notification from "../models/Notification.js";
+import User from "../models/User.js";
+import { sendPushNotification, sendMulticastPushNotification } from "../utils/firebase.js";
+import { sendTelegramAlert } from "../utils/telegram.js";
+import logger from "../utils/logger.js";
 
 /**
  * Auto-Notification Engine
@@ -64,6 +68,32 @@ export const emitAutoNotification = async (io, {
         io.to(room).emit("notification_created", payload);
       });
     }
+
+    // 3. Send Push Notifications & Telegram Alerts asynchronously
+    setTimeout(async () => {
+      try {
+        if (userId) {
+          const targetUser = await User.findById(userId).select("fcmToken");
+          if (targetUser && targetUser.fcmToken) {
+            await sendPushNotification(targetUser.fcmToken, title, message);
+          }
+        } else if (type === "alert" || type === "broadcast") {
+          // Multicast for broadcasts
+          const usersWithTokens = await User.find({ fcmToken: { $exists: true, $ne: "" } }).select("fcmToken");
+          const tokens = usersWithTokens.map(u => u.fcmToken);
+          if (tokens.length > 0) {
+            await sendMulticastPushNotification(tokens, title, message);
+          }
+        }
+        
+        // Telegram Alert for high/critical auto-notifications
+        if (severity === "critical" || severity === "high") {
+          await sendTelegramAlert(`🚨 *${severity.toUpperCase()} ALERT*\n\n*${title}*\n${message}`);
+        }
+      } catch (err) {
+        logger.error(`Failed to send auto-notification push/telegram: ${err.message}`);
+      }
+    }, 0);
 
     return notification;
   } catch (error) {
