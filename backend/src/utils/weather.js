@@ -1,7 +1,17 @@
 import axios from "axios";
+import { getIntegrationRuntimeConfig } from "../services/settings.service.js";
 
 export const getRealtimeWeather = async (city = "New Delhi", lat = null, lng = null) => {
-    const apiKey = process.env.OPENWEATHER_API_KEY;
+    let apiKey = "";
+    try {
+        const config = await getIntegrationRuntimeConfig("openweather", {
+            envApiKey: "OPENWEATHER_API_KEY",
+        });
+        apiKey = config.apiKey;
+    } catch (err) {
+        apiKey = process.env.OPENWEATHER_API_KEY;
+    }
+
     if (!apiKey) {
         throw new Error("OpenWeather API key is not configured.");
     }
