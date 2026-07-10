@@ -91,9 +91,12 @@ export const protect = async (req, res, next) => {
  * Usage: authorizeRoles("super_admin", "admin")
  */
 export const authorizeRoles = (...roles) => (req, res, next) => {
-  if (!req.user || !roles.includes(req.user.role)) {
+  const normalizedRoles = roles.map(r => String(r).toLowerCase());
+  const userRole = String(req.user?.role || "").toLowerCase();
 
-
+  // Mapping "super_admin" or similar mappings to "admin" if needed, 
+  // but let's compare them directly to keep it simple and clean
+  if (!req.user || !normalizedRoles.includes(userRole)) {
     return res
       .status(403)
       .json({ message: "You do not have permission for this action" });

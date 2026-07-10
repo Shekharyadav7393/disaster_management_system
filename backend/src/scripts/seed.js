@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import User from '../models/User.js';
 import DisasterType from '../models/DisasterType.js';
 import Team from '../models/Team.js';
+import bcrypt from 'bcryptjs';
 
 dotenv.config();
 
@@ -14,13 +15,14 @@ const seedData = async () => {
     // 1. Seed Roles/Users
     const admin = await User.findOne({ email: "admin@disasterms.local" });
     if (!admin) {
+      const hashedPassword = await bcrypt.hash("admin123", 12);
       await User.create({
         name: "Control Room Admin",
         email: "admin@disasterms.local",
-        password: "admin123", // Real app uses hashing!
+        password: hashedPassword,
         role: "super_admin",
-        phone: "+91 99999 00001",
-        location: { city: "Delhi", state: "Delhi" }
+        phone: "9999900001",
+        isVerified: true
       });
       console.log("[SEED] Admin user created.");
     }

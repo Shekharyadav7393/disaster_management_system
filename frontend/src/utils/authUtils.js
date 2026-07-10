@@ -3,8 +3,9 @@
  * @param {string} role - The role of the authenticated user.
  * @returns {string} - The redirect path.
  */
-export const getRedirectPath = (role) => {
-  switch (role) {
+export const getRedirectPath = (role = "") => {
+  const r = String(role).toLowerCase();
+  switch (r) {
     case "admin":
     case "super_admin":
     case "emergency_admin":
