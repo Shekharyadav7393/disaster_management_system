@@ -55,7 +55,7 @@ const DEFAULT_CORS_ORIGINS = [
   "http://localhost:5173",
   "http://localhost:3000",
   "https://disaster-management-system-1-a2bz.onrender.com",
-  "https://disaster-management-ay4u.onrender.com",
+  "https://disaster-management-system-1-hkan.onrender.com",
 ];
 
 const parseOriginList = (...values) =>
