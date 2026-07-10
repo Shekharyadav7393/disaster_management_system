@@ -59,10 +59,10 @@ const userSchema = new mongoose.Schema(
     role: {
       type: String,
       enum: {
-        values: ['USER', 'RESPONDER', 'ADMIN'],
+        values: ['citizen', 'admin', 'super_admin', 'emergency_admin', 'volunteer', 'rescue', 'rescue_team', 'user', 'USER', 'RESPONDER', 'ADMIN'],
         message: '{VALUE} is not a valid role',
       },
-      default: 'USER',
+      default: 'citizen',
     },
     location: {
       longitude: { type: Number },
