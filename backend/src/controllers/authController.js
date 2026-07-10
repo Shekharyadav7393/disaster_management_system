@@ -205,13 +205,28 @@ export const refreshToken = async (req, res) => {
 
 export const googleAuth = async (req, res) => {
   try {
-    const { token } = req.body;
-    const ticket = await googleClient.verifyIdToken({
-      idToken: token,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
-    const payload = ticket.getPayload();
-    const { email, name, sub: googleId, picture } = payload;
+    const { token, access_token } = req.body;
+    let email, name, googleId, picture;
+
+    if (token) {
+      const ticket = await googleClient.verifyIdToken({
+        idToken: token,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+      const payload = ticket.getPayload();
+      email = payload.email;
+      name = payload.name;
+      googleId = payload.sub;
+      picture = payload.picture;
+    } else if (access_token) {
+      const response = await axios.get(`https://www.googleapis.com/oauth2/v3/userinfo?access_token=${access_token}`);
+      email = response.data.email;
+      name = response.data.name;
+      googleId = response.data.sub;
+      picture = response.data.picture;
+    } else {
+      return res.status(400).json({ message: "Google authentication failed: no token provided" });
+    }
 
     let user = await User.findOne({ email });
 
