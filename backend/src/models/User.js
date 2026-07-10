@@ -103,7 +103,7 @@ userSchema.index({ phone: 1 });
 userSchema.index({ location: '2dsphere' });
 
 // ── Pre-save hooks ──────────────────────────────────────────────────────────
-userSchema.pre('save', async function (next) {
+userSchema.pre('save', async function () {
   // 1. Password complexity check (only when modified and not already hashed)
   if (this.isModified('password') && this.password) {
     const raw = this.password;
@@ -126,7 +126,7 @@ userSchema.pre('save', async function (next) {
             value: raw,
           })
         );
-        return next(err);
+        throw err;
       }
 
       // 2. Hash the password
@@ -144,8 +144,6 @@ userSchema.pre('save', async function (next) {
     this.location.type = 'Point';
     this.location.coordinates = [this.location.longitude, this.location.latitude];
   }
-
-  next();
 });
 
 // ── Instance Methods ────────────────────────────────────────────────────────
