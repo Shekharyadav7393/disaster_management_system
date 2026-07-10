@@ -3,6 +3,10 @@ import ProtectedRoute from "./routes/ProtectedRoute.jsx";
 
 // Auth
 import Login from "./pages/Login.jsx";
+import ForgotPassword from "./pages/ForgotPassword.jsx";
+import ResetPassword from "./pages/ResetPassword.jsx";
+import VerifyEmail from "./pages/VerifyEmail.jsx";
+import GithubCallback from "./pages/GithubCallback.jsx";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
@@ -63,6 +67,10 @@ const App = () => {
 
       {/* ── Auth ── */}
       <Route path="/login" element={<Login />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password/:token" element={<ResetPassword />} />
+      <Route path="/verify-email/:token" element={<VerifyEmail />} />
+      <Route path="/auth/github/callback" element={<GithubCallback />} />
       <Route path="/admin/login" element={<AdminLogin />} />
 
       {/* ── User Dashboard (auth required, any role) ── */}

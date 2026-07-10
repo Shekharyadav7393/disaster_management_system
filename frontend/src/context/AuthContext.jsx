@@ -21,6 +21,14 @@ const readStoredToken = () => {
   }
 };
 
+const readStoredRefreshToken = () => {
+  try {
+    return localStorage.getItem("dms_refresh_token") || null;
+  } catch {
+    return null;
+  }
+};
+
 const getAuthErrorMessage = (err) => {
   if (err?.response?.data?.message) {
     return err.response.data.message;
@@ -62,10 +70,13 @@ export const AuthProvider = ({ children }) => {
     try {
       const { data } = await api.post("/auth/login", credentials);
       setUser(data.user);
-      setToken(data.token);
+      setToken(data.accessToken || data.token);
       localStorage.setItem("dms_user", JSON.stringify(data.user));
-      localStorage.setItem("dms_token", data.token);
-      socket.auth = { token: data.token };
+      localStorage.setItem("dms_token", data.accessToken || data.token);
+      if (data.refreshToken) {
+        localStorage.setItem("dms_refresh_token", data.refreshToken);
+      }
+      socket.auth = { token: data.accessToken || data.token };
       if (socket.connected) {
         socket.disconnect();
       }
@@ -86,6 +97,7 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     localStorage.removeItem("dms_user");
     localStorage.removeItem("dms_token");
+    localStorage.removeItem("dms_refresh_token");
     socket.auth = {};
     if (socket.connected) {
       socket.disconnect();
@@ -93,8 +105,35 @@ export const AuthProvider = ({ children }) => {
     socket.connect();
   };
 
+  const externalLogin = async (endpoint, payload) => {
+    setLoading(true);
+    try {
+      const { data } = await api.post(`/auth/${endpoint}`, payload);
+      setUser(data.user);
+      setToken(data.accessToken || data.token);
+      localStorage.setItem("dms_user", JSON.stringify(data.user));
+      localStorage.setItem("dms_token", data.accessToken || data.token);
+      if (data.refreshToken) {
+        localStorage.setItem("dms_refresh_token", data.refreshToken);
+      }
+      socket.auth = { token: data.accessToken || data.token };
+      if (socket.connected) {
+        socket.disconnect();
+      }
+      socket.connect();
+      return { ok: true, user: data.user };
+    } catch (err) {
+      return {
+        ok: false,
+        message: getAuthErrorMessage(err),
+      };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const value = useMemo(
-    () => ({ user, token, login, logout, loading, initialized }),
+    () => ({ user, token, login, externalLogin, logout, loading, initialized }),
     [user, token, loading, initialized]
   );
 

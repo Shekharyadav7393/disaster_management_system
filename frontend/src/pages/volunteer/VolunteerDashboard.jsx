@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import PublicLayout from "../../modules/public/PublicLayout.jsx";
 import api from "../../api/axios.js";
+import { socket } from "../../socket/socket.js";
 
 const VolunteerDashboard = () => {
   const [profile, setProfile] = useState(null);
@@ -56,6 +57,42 @@ const VolunteerDashboard = () => {
   useEffect(() => {
     loadProfile();
   }, [loadProfile]);
+
+  // Real-time location tracking for active volunteers
+  const locationInterval = useRef(null);
+  useEffect(() => {
+    if (profile && (profile.status === "approved" || profile.status === "active")) {
+      const trackLocation = () => {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              const data = {
+                userId: profile._id,
+                name: profile.name,
+                lat: pos.coords.latitude,
+                lng: pos.coords.longitude,
+                timestamp: new Date().toISOString()
+              };
+              if (socket.connected) {
+                socket.emit("location_update", data);
+              }
+            },
+            (err) => console.warn("Location tracking error:", err.message),
+            { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+          );
+        }
+      };
+
+      trackLocation(); // Initial call
+      locationInterval.current = setInterval(trackLocation, 10000); // Update every 10s
+    }
+
+    return () => {
+      if (locationInterval.current) {
+        clearInterval(locationInterval.current);
+      }
+    };
+  }, [profile]);
 
   const handleRegister = async (e) => {
     e.preventDefault();

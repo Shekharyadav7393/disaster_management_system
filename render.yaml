@@ -1,15 +1,4 @@
 services:
-  - type: pserv
-    name: disaster-management-mongodb
-    runtime: docker
-    repo: https://github.com/render-examples/mongodb
-    branch: main
-    autoDeployTrigger: off
-    disk:
-      name: data
-      mountPath: /data/db
-      sizeGB: 10
-
   - type: web
     name: disaster-management-system
     runtime: node
@@ -23,16 +12,13 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: MONGO_URI
+        sync: false
       - key: DB_NAME
         value: disaster_management_system
-      - key: MONGO_HOST
-        fromService:
-          type: pserv
-          name: disaster-management-mongodb
-          property: host
-      - key: MONGO_PORT
-        value: "27017"
       - key: TOKEN_SECRET
+        generateValue: true
+      - key: JWT_SECRET
         generateValue: true
       - key: GEMINI_API_KEY
         sync: false
@@ -44,5 +30,31 @@ services:
         sync: false
       - key: CLOUDINARY_API_SECRET
         sync: false
-      - key: CLOUDINARY_FOLDER
-        value: disaster-management-system
+      - key: FRONTEND_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: EMAIL_SERVICE
+        sync: false
+      - key: EMAIL_USERNAME
+        sync: false
+      - key: EMAIL_PASSWORD
+        sync: false
+      - key: FROM_NAME
+        value: "Disaster Management Team"
+      - key: FROM_EMAIL
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT_BASE64
+        sync: false

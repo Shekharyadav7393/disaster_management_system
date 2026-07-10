@@ -48,6 +48,7 @@ const ReportDisaster = () => {
     const [userLoc, setUserLoc] = useState(null);
     const [locating, setLocating] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [analyzing, setAnalyzing] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [understoodWarning, setUnderstoodWarning] = useState(false);
@@ -175,6 +176,49 @@ const ReportDisaster = () => {
             setError(err?.response?.data?.message || err.message || "An error occurred while submitting the report.");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleAnalyzeImage = async () => {
+        if (!image) return;
+        setAnalyzing(true);
+        setError("");
+        try {
+            const fd = new FormData();
+            fd.append("image", image);
+            const { data } = await api.post("/ai/analyze-image", fd, {
+                headers: { "Content-Type": "multipart/form-data" },
+            });
+            
+            if (data.analysis) {
+                const { disasterType, severity, damageDescription } = data.analysis;
+                
+                // Map AI disasterType to our values if possible, else keep 'other'
+                let matchedType = "other";
+                const aiTypeLower = (disasterType || "").toLowerCase();
+                const possibleTypes = ["flood", "earthquake", "fire", "cyclone", "landslide", "gas", "drought"];
+                for (let t of possibleTypes) {
+                    if (aiTypeLower.includes(t)) {
+                        matchedType = t;
+                        break;
+                    }
+                }
+                
+                const validSeverity = ["low", "medium", "high", "critical"].includes(severity?.toLowerCase()) ? severity.toLowerCase() : "medium";
+
+                setForm(f => ({
+                    ...f,
+                    disasterType: matchedType,
+                    severity: validSeverity,
+                    description: (f.description ? f.description + "\n\n" : "") + "[AI Analysis] " + damageDescription,
+                    title: f.title || `AI Detected ${matchedType.charAt(0).toUpperCase() + matchedType.slice(1)} Incident`
+                }));
+                setSuccess("✅ AI Analysis complete! Form fields have been auto-filled.");
+            }
+        } catch (err) {
+            setError(err?.response?.data?.message || err.message || "AI Analysis failed.");
+        } finally {
+            setAnalyzing(false);
         }
     };
 
@@ -312,6 +356,15 @@ const ReportDisaster = () => {
                                             onClick={() => { setImage(null); setPreview(null); }}
                                             style={{ position: "absolute", top: 10, right: 10, background: "rgba(0,0,0,0.6)", color: "#fff", border: "none", borderRadius: "50%", width: 24, height: 24, cursor: "pointer" }}
                                         >✕</button>
+                                        <button 
+                                            type="button" 
+                                            onClick={handleAnalyzeImage}
+                                            disabled={analyzing}
+                                            className="btn btn-sm"
+                                            style={{ marginTop: 10, width: "100%", background: "linear-gradient(45deg, #a855f7, #6366f1)", color: "#fff", border: "none" }}
+                                        >
+                                            {analyzing ? "✨ Analyzing with AI..." : "✨ Auto-Fill with Gemini Vision AI"}
+                                        </button>
                                     </div>
                                 )}
                             </div>

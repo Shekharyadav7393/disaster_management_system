@@ -14,6 +14,11 @@ const AdminAlerts = () => {
   const [timelineModal, setTimelineModal] = useState(null);
   const [timelineForm, setTimelineForm] = useState({ title: "", description: "", type: "alert" });
   
+  // SOP State
+  const [sopModal, setSopModal] = useState(null);
+  const [sopContent, setSopContent] = useState("");
+  const [generatingSop, setGeneratingSop] = useState(false);
+  
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
   const [searchSearching, setSearchSearching] = useState(false);
@@ -129,6 +134,26 @@ const AdminAlerts = () => {
     }
   };
 
+  const handleGenerateSOP = async (alertData) => {
+    setSopModal(alertData);
+    setGeneratingSop(true);
+    setSopContent("");
+    try {
+      const payload = {
+        title: alertData.title,
+        disasterType: alertData.type,
+        severity: alertData.severity,
+        location: alertData.location?.address || alertData.location?.coordinates?.lat ? `${alertData.location?.coordinates?.lat}, ${alertData.location?.coordinates?.lng}` : "Unknown",
+      };
+      const { data } = await api.post("/ai/generate-sop", payload);
+      setSopContent(data.sop);
+    } catch (err) {
+      setSopContent("Error generating SOP: " + (err?.response?.data?.message || err.message));
+    } finally {
+      setGeneratingSop(false);
+    }
+  };
+
   return (
     <AdminLayout
       title="Live Alerts"
@@ -145,13 +170,22 @@ const AdminAlerts = () => {
               <AlertCard 
                 alert={a} 
                 actions={
-                  <button 
-                    onClick={() => setTimelineModal(a)}
-                    className="btn btn-sm btn-secondary"
-                    style={{ fontSize: 10, padding: "4px 8px" }}
-                  >
-                    + Log Event
-                  </button>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button 
+                      onClick={() => setTimelineModal(a)}
+                      className="btn btn-sm btn-secondary"
+                      style={{ fontSize: 10, padding: "4px 8px" }}
+                    >
+                      + Log Event
+                    </button>
+                    <button 
+                      onClick={() => handleGenerateSOP(a)}
+                      className="btn btn-sm"
+                      style={{ fontSize: 10, padding: "4px 8px", background: "linear-gradient(45deg, #a855f7, #6366f1)", color: "white", border: "none" }}
+                    >
+                      ✨ AI SOP
+                    </button>
+                  </div>
                 }
               />
               <button 
@@ -293,6 +327,41 @@ const AdminAlerts = () => {
                 <button type="submit" className="btn btn-primary" disabled={loading}>Log Event</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* SOP Modal */}
+      {sopModal && (
+        <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setSopModal(null); }}>
+          <div className="modal-content" style={{ maxWidth: 700 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <h3 style={{ fontWeight: 700 }}>✨ AI Generated SOP</h3>
+              <button className="btn-icon" onClick={() => setSopModal(null)}>✕</button>
+            </div>
+            <p className="muted" style={{ marginBottom: 15 }}>
+              Standard Operating Procedure for <strong>{sopModal.title}</strong>
+            </p>
+            
+            <div style={{ background: "var(--panel-2)", padding: 20, borderRadius: 12, minHeight: 200, maxHeight: 400, overflowY: "auto", whiteSpace: "pre-wrap", border: "1px solid var(--border)", lineHeight: 1.6 }}>
+              {generatingSop ? (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", flexDirection: "column", gap: 10 }}>
+                  <span style={{ fontSize: 24 }}>✨</span>
+                  <span>Generating specialized emergency protocols...</span>
+                </div>
+              ) : (
+                sopContent
+              )}
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 20 }}>
+              <button type="button" className="btn btn-primary" onClick={() => {
+                if(sopContent && !generatingSop) {
+                  navigator.clipboard.writeText(sopContent);
+                  alert("SOP copied to clipboard!");
+                }
+              }}>📋 Copy SOP</button>
+            </div>
           </div>
         </div>
       )}

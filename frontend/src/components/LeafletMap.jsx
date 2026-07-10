@@ -8,6 +8,7 @@ import {
   useMap,
   useMapEvents,
 } from "react-leaflet";
+
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
@@ -148,34 +149,42 @@ const LeafletMap = ({
         <MapResizer />
         <ClickHandler onClick={onClick} />
 
-        {markers
-          .filter((marker) => typeof marker?.lat === "number" && typeof marker?.lng === "number")
-          .map((marker) => (
-            <CircleMarker
-              key={marker.id || marker._id || `${marker.type}-${marker.title}-${marker.lat}-${marker.lng}`}
-              center={[marker.lat, marker.lng]}
-              pathOptions={{
-                color: getMarkerColor(marker),
-                fillColor: getMarkerColor(marker),
-                fillOpacity: 0.65,
-                weight: 2,
-              }}
-              radius={8}
-              eventHandlers={{
-                click: () => onMarkerClick?.(marker),
-              }}
-            >
-              <Popup>
-                <div style={{ minWidth: 140 }}>
-                  <strong>{marker.title || "Map item"}</strong>
-                  {marker.severity && (
-                    <div style={{ marginTop: 6, textTransform: "capitalize" }}>Severity: {marker.severity}</div>
-                  )}
-                  {marker.type && <div style={{ marginTop: 4, textTransform: "capitalize" }}>Type: {marker.type}</div>}
-                </div>
-              </Popup>
-            </CircleMarker>
-          ))}
+        {markers.length > 0 && (
+          <>
+            {markers
+              .filter((marker) => typeof marker?.lat === "number" && typeof marker?.lng === "number")
+              .map((marker) => {
+                const color = getMarkerColor(marker);
+                const customIcon = L.divIcon({
+                  className: "custom-leaflet-marker",
+                  html: `<svg width="24" height="24" viewBox="0 0 24 24" fill="${color}" stroke="#fff" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10"/></svg>`,
+                  iconSize: [24, 24],
+                  iconAnchor: [12, 12]
+                });
+
+                return (
+                  <Marker
+                    key={marker.id || marker._id || `${marker.type}-${marker.title}-${marker.lat}-${marker.lng}`}
+                    position={[marker.lat, marker.lng]}
+                    icon={customIcon}
+                    eventHandlers={{
+                      click: () => onMarkerClick?.(marker),
+                    }}
+                  >
+                    <Popup>
+                      <div style={{ minWidth: 140 }}>
+                        <strong>{marker.title || "Map item"}</strong>
+                        {marker.severity && (
+                          <div style={{ marginTop: 6, textTransform: "capitalize" }}>Severity: {marker.severity}</div>
+                        )}
+                        {marker.type && <div style={{ marginTop: 4, textTransform: "capitalize" }}>Type: {marker.type}</div>}
+                      </div>
+                    </Popup>
+                  </Marker>
+                );
+              })}
+          </>
+        )}
 
         {toLatLng(selectedPosition) && (
           <Marker position={toLatLng(selectedPosition)} icon={pinIcon}>

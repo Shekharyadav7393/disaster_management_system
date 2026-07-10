@@ -3,6 +3,7 @@ import AdminLayout from "../../modules/admin/AdminLayout.jsx";
 import LeafletMap from "../../components/LeafletMap.jsx";
 import EnvironmentMonitor from "../../components/EnvironmentMonitor.jsx";
 import PredictionPanel from "../../components/PredictionPanel.jsx";
+import { useAuth } from "../../context/AuthContext.jsx";
 import api from "../../api/axios.js";
 import { socket } from "../../socket/socket.js";
 import { extractLatLng } from "../../utils/location.js";
@@ -53,6 +54,7 @@ const severityBuckets = (items = []) =>
   );
 
 const AdminDashboard = () => {
+  const { user } = useAuth();
   const [overview, setOverview] = useState({});
   const [donationStats, setDonationStats] = useState([]);
   const [rescueStatus, setRescueStatus] = useState({});
@@ -334,11 +336,15 @@ const AdminDashboard = () => {
 
       <div className="grid grid-4">
         {[
-          ["/admin/reports", "Review reports"],
-          ["/admin/volunteers", "Manage volunteers"],
-          ["/admin/sos", "SOS requests"],
-          ["/admin/settings", "API settings"],
-        ].map(([path, label]) => (
+          { path: "/admin/alerts", label: "Live Alerts", roles: ["super_admin", "emergency_admin"] },
+          { path: "/admin/missions", label: "Missions", roles: ["super_admin", "emergency_admin"] },
+          { path: "/admin/reports", label: "Review reports", roles: ["super_admin", "admin"] },
+          { path: "/admin/volunteers", label: "Manage volunteers", roles: ["super_admin", "admin"] },
+          { path: "/admin/sos", label: "SOS requests", roles: ["super_admin", "emergency_admin"] },
+          { path: "/admin/settings", label: "API settings", roles: ["super_admin"] },
+        ]
+        .filter(item => user && item.roles.includes(user.role))
+        .map(({ path, label }) => (
           <a key={path} href={path} className="card" style={{ textDecoration: "none", fontWeight: 700 }}>
             {label}
           </a>

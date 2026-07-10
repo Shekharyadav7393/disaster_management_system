@@ -2,20 +2,22 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 
 const adminNavItems = [
-  { path: "/admin", label: "Dashboard", icon: "📊", end: true },
-  { path: "/admin/alerts", label: "Live Alerts", icon: "⚡" },
-  { path: "/admin/missions", label: "Missions", icon: "🎯" },
-  { path: "/admin/risk-zones", label: "Risk Zones", icon: "⚠️" },
-  { path: "/admin/disaster-types", label: "Disaster Types", icon: "📋" },
-  { path: "/admin/rescue", label: "Rescue Teams", icon: "🚑" },
-  { path: "/admin/camps", label: "Relief Camps", icon: "🏕️" },
-  { path: "/admin/donations", label: "Donations", icon: "💰" },
-  { path: "/admin/reports", label: "Disaster Reports", icon: "📢" },
-  { path: "/admin/volunteers", label: "Volunteers", icon: "🤝" },
-  { path: "/admin/sos", label: "SOS Requests", icon: "🆘" },
-  { path: "/admin/notifications", label: "Notifications", icon: "🔔" },
-  { path: "/admin/analytics", label: "Analytics", icon: "📈" },
-  { path: "/admin/settings", label: "Settings", icon: "⚙️" },
+  { path: "/admin", label: "Dashboard", icon: "📊", end: true, allowedRoles: ["super_admin", "admin", "emergency_admin"] },
+  { path: "/admin/alerts", label: "Live Alerts", icon: "⚡", allowedRoles: ["super_admin", "emergency_admin"] },
+  { path: "/admin/missions", label: "Missions", icon: "🎯", allowedRoles: ["super_admin", "emergency_admin"] },
+  { path: "/admin/risk-zones", label: "Risk Zones", icon: "⚠️", allowedRoles: ["super_admin", "emergency_admin"] },
+  { path: "/admin/rescue", label: "Rescue Teams", icon: "🚑", allowedRoles: ["super_admin", "emergency_admin"] },
+  { path: "/admin/sos", label: "SOS Requests", icon: "🆘", allowedRoles: ["super_admin", "emergency_admin"] },
+  
+  { path: "/admin/disaster-types", label: "Disaster Types", icon: "📋", allowedRoles: ["super_admin"] },
+  { path: "/admin/settings", label: "Settings", icon: "⚙️", allowedRoles: ["super_admin"] },
+
+  { path: "/admin/camps", label: "Relief Camps", icon: "🏕️", allowedRoles: ["super_admin", "admin"] },
+  { path: "/admin/donations", label: "Donations", icon: "💰", allowedRoles: ["super_admin", "admin"] },
+  { path: "/admin/reports", label: "Disaster Reports", icon: "📢", allowedRoles: ["super_admin", "admin"] },
+  { path: "/admin/volunteers", label: "Volunteers", icon: "🤝", allowedRoles: ["super_admin", "admin"] },
+  { path: "/admin/notifications", label: "Notifications", icon: "🔔", allowedRoles: ["super_admin", "admin", "emergency_admin"] },
+  { path: "/admin/analytics", label: "Analytics", icon: "📈", allowedRoles: ["super_admin", "admin", "emergency_admin"] },
 ];
 
 const Sidebar = ({ isOpen, onClose }) => {
@@ -43,17 +45,19 @@ const Sidebar = ({ isOpen, onClose }) => {
         <nav className="sidebar-nav">
           <div className="sidebar-section">
             <div className="sidebar-section-label">Navigation</div>
-            {adminNavItems.map((item) => (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                end={item.end}
-                className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
-                onClick={onClose}
-              >
-                <span className="nav-icon">{item.icon}</span>
-                {item.label}
-              </NavLink>
+            {adminNavItems
+              .filter(item => !item.allowedRoles || (user && item.allowedRoles.includes(user.role)))
+              .map((item) => (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  end={item.end}
+                  className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
+                  onClick={onClose}
+                >
+                  <span className="nav-icon">{item.icon}</span>
+                  {item.label}
+                </NavLink>
             ))}
           </div>
 

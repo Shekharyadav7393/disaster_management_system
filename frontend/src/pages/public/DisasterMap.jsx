@@ -3,6 +3,7 @@ import PublicLayout from "../../modules/public/PublicLayout.jsx";
 import LeafletMap from "../../components/LeafletMap.jsx";
 import api from "../../api/axios.js";
 import { extractLatLng } from "../../utils/location.js";
+import { socket } from "../../socket/socket.js";
 
 const DisasterMap = () => {
     const [mapData, setMapData] = useState({ alerts: [], camps: [], reports: [], zones: [] });
@@ -10,6 +11,7 @@ const DisasterMap = () => {
     const [filter, setFilter] = useState("all");
     const [selected, setSelected] = useState(null);
     const [userLoc, setUserLoc] = useState(null);
+    const [liveTeams, setLiveTeams] = useState({}); // To store real-time team/volunteer locations
 
     const load = useCallback(async () => {
         try {
@@ -41,6 +43,30 @@ const DisasterMap = () => {
                 () => {}
             );
         }
+    }, []);
+
+    // Listen to real-time location updates
+    useEffect(() => {
+        const handleLocationUpdate = (data) => {
+            if (data.userId && data.lat && data.lng) {
+                setLiveTeams(prev => ({
+                    ...prev,
+                    [data.userId]: {
+                        id: data.userId,
+                        title: data.name || "Rescue Volunteer",
+                        type: "team",
+                        lat: data.lat,
+                        lng: data.lng,
+                        timestamp: data.timestamp
+                    }
+                }));
+            }
+        };
+
+        socket.on("team_location_update", handleLocationUpdate);
+        return () => {
+            socket.off("team_location_update", handleLocationUpdate);
+        };
     }, []);
 
     // Build markers array with lat/lng from various structures
@@ -82,6 +108,7 @@ const DisasterMap = () => {
             const { lat, lng } = getLatLng(z, "zone");
             return { ...z, lat, lng, type: "zone", title: z.name || "Risk Zone", severity: z.riskLevel };
         }),
+        ...Object.values(liveTeams)
     ].filter(m => !isNaN(m.lat) && !isNaN(m.lng) && m.lat !== null && m.lng !== null);
 
     const filtered = filter === "all" ? allMarkers : allMarkers.filter(m => m.type === filter);
@@ -92,6 +119,7 @@ const DisasterMap = () => {
         { key: "zone", label: "Risk Zones", icon: "⚠️" },
         { key: "camp", label: "Relief Camps", icon: "🏕" },
         { key: "report", label: "User Reports", icon: "📋" },
+        { key: "team", label: "Live Volunteers", icon: "🚁" },
     ];
 
     const severityColor = {
@@ -172,7 +200,7 @@ const DisasterMap = () => {
                 <div className="card" style={{ marginTop: 16, border: "1px solid var(--border-2)", background: "var(--panel-2)", position: "relative", animation: "fadeInUp 0.3s ease" }}>
                     <button className="btn-icon" onClick={() => setSelected(null)} style={{ position: "absolute", right: 16, top: 16, fontSize: 12 }}>✕</button>
                     <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 6 }}>
-                        {selected.type === "alert" ? "🚨 Active Alert" : selected.type === "camp" ? "🏕 Relief Camp" : selected.type === "zone" ? "⚠️ Risk Zone" : "📋 User Report"}
+                        {selected.type === "alert" ? "🚨 Active Alert" : selected.type === "camp" ? "🏕 Relief Camp" : selected.type === "zone" ? "⚠️ Risk Zone" : selected.type === "team" ? "🚁 Rescue Volunteer" : "📋 User Report"}
                     </div>
                     <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{selected.title || selected.name}</h3>
                     {selected.description && <p style={{ color: "var(--text-2)", fontSize: 13, lineHeight: 1.6 }}>{selected.description}</p>}
