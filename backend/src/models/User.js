@@ -32,9 +32,9 @@ const userSchema = new mongoose.Schema(
       validate: {
         validator: function(v) {
           if (this.authProvider !== 'local' && !v) return true;
-          return /^[0-9]{10}$/.test(v);
+          return /^\+?[0-9\s\-]{8,20}$/.test(v);
         },
-        message: (props) => `${props.value} is not a valid 10-digit phone number`,
+        message: (props) => `${props.value} is not a valid phone number`,
       },
     },
     authProvider: {
@@ -110,18 +110,12 @@ userSchema.pre('save', async function () {
     const isAlreadyHashed = /^\$2[ab]\$/.test(raw);
 
     if (!isAlreadyHashed) {
-      const hasUppercase = /[A-Z]/.test(raw);
-      const hasNumber = /[0-9]/.test(raw);
-      const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(raw);
-      const hasMinLength = raw.length >= 8;
-
-      if (!hasMinLength || !hasUppercase || !hasNumber || !hasSpecial) {
+      if (raw.length < 6) {
         const err = new mongoose.Error.ValidationError(this);
         err.addError(
           'password',
           new mongoose.Error.ValidatorError({
-            message:
-              'Password must be at least 8 characters and contain at least one uppercase letter, one number, and one special character',
+            message: 'Password must be at least 6 characters long',
             path: 'password',
             value: raw,
           })

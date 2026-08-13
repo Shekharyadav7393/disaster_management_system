@@ -1,5 +1,5 @@
 import express from "express";
-import RiskZone from "../models/RiskZone.js";
+import Zone from "../models/Zone.js";
 import { protect, authorizeRoles } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -32,7 +32,7 @@ router.post("/", protect, async (req, res, next) => {
     }
 
     // Create zone
-    const zone = await RiskZone.create({
+    const zone = await Zone.create({
       name,
       type: type || "multi",
       riskLevel: String(riskLevel).toLowerCase(),
@@ -55,7 +55,7 @@ router.post("/", protect, async (req, res, next) => {
 */
 router.get("/", async (req, res, next) => {
   try {
-    const zones = await RiskZone.find().sort({ createdAt: -1 });
+    const zones = await Zone.find().sort({ createdAt: -1 });
     res.json(zones);
   } catch (error) {
     next(error);
@@ -67,7 +67,7 @@ router.get("/", async (req, res, next) => {
 */
 router.get("/:id", async (req, res, next) => {
   try {
-    const zone = await RiskZone.findById(req.params.id);
+    const zone = await Zone.findById(req.params.id);
     if (!zone) return res.status(404).json({ message: "Risk zone not found" });
     res.json(zone);
   } catch (error) {
@@ -81,7 +81,7 @@ router.get("/:id", async (req, res, next) => {
 router.put("/:id", protect, async (req, res, next) => {
   try {
     const { name, type, riskLevel, boundary, polygon } = req.body;
-    const zone = await RiskZone.findById(req.params.id);
+    const zone = await Zone.findById(req.params.id);
     if (!zone) return res.status(404).json({ message: "Risk zone not found" });
 
     if (name) zone.name = name;
@@ -101,7 +101,7 @@ router.put("/:id", protect, async (req, res, next) => {
 */
 router.delete("/:id", protect, async (req, res, next) => {
   try {
-    const zone = await RiskZone.findByIdAndDelete(req.params.id);
+    const zone = await Zone.findByIdAndDelete(req.params.id);
     if (!zone) return res.status(404).json({ message: "Risk zone not found" });
     res.json({ message: "Risk zone deleted successfully" });
   } catch (error) {

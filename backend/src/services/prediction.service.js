@@ -1,7 +1,6 @@
 import SensorReading from "../models/SensorReading.js";
-import RiskZone from "../models/RiskZone.js";
-import DisasterAlert from "../models/DisasterAlert.js";
-import Prediction from "../models/Prediction.js";
+import Zone from "../models/Zone.js";
+import Alert from "../models/Alert.js";
 import { dispatchNearestTeamForAlert } from "./dispatch.service.js";
 import { getSafetyInstructions } from "../utils/safetyInstructions.js";
 
@@ -106,24 +105,13 @@ export const analyzeFloodRisk = async ({ areaId, zoneId, sensorId, io }) => {
 
   const severity = scoreToSeverity(score);
 
-  const zoneDoc = await RiskZone.findById(resolvedAreaId).lean();
+  const zoneDoc = await Zone.findById(resolvedAreaId).lean();
   const riskLevel = severity.toUpperCase();
-
-  await Prediction.create({
-    zoneId: resolvedAreaId,
-    predictedDisasterType: "flood",
-    riskScore: Math.min(1, Math.max(0, score)),
-    factors: {
-      rainfallAvg,
-      waterLevelAvg: waterAvg,
-      trendDirection,
-    }
-  });
 
   // Update zone risk snapshot every time we evaluate
   // Store a small prediction history snapshot for analytics graphs.
   // We only keep the last 200 entries to avoid unbounded growth.
-  await RiskZone.findByIdAndUpdate(
+  await Zone.findByIdAndUpdate(
     resolvedAreaId,
     {
       riskLevel,
@@ -156,7 +144,7 @@ export const analyzeFloodRisk = async ({ areaId, zoneId, sensorId, io }) => {
   }
 
   // Prevent duplicate alerts within 10 minutes for the same zone
-  const recentAlert = await DisasterAlert.findOne({
+  const recentAlert = await Alert.findOne({
     zoneId: resolvedAreaId,
     type: "flood",
     createdAt: { $gte: new Date(Date.now() - 10 * 60 * 1000) },
@@ -174,7 +162,7 @@ export const analyzeFloodRisk = async ({ areaId, zoneId, sensorId, io }) => {
 
   const { instructions, recommendedAction } = getSafetyInstructions("flood");
 
-  const alert = await DisasterAlert.create({
+  const alert = await Alert.create({
     type: "flood",
     zoneId: resolvedAreaId,
     zoneName: zoneDoc?.name || "Unknown zone",

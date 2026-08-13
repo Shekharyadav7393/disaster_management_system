@@ -1,6 +1,6 @@
-import RiskZone from "../models/RiskZone.js";
+import Zone from "../models/Zone.js";
 import SensorReading from "../models/SensorReading.js";
-import DisasterAlert from "../models/DisasterAlert.js";
+import Alert from "../models/Alert.js";
 import User from "../models/User.js";
 import { getSocketIO } from "../config/socket.js";
 import { fetchWeatherData } from "./externalApiService.js";
@@ -64,7 +64,7 @@ const evaluateRisk = (metrics, weather) => {
 const shouldCreateAlert = async (areaId, disasterType) => {
   const since = new Date(Date.now() - ALERT_COOLDOWN_MINUTES * 60 * 1000);
 
-  const recent = await DisasterAlert.findOne({
+  const recent = await Alert.findOne({
     zoneId: areaId,
     type: disasterType,
     createdAt: { $gte: since },
@@ -78,7 +78,7 @@ export const runRiskEvaluation = async () => {
   console.log("Running risk evaluation cycle");
 
   try {
-    const areas = await RiskZone.find();
+    const areas = await Zone.find();
 
     for (const area of areas) {
       // 1. Get real weather for the city
@@ -111,7 +111,7 @@ export const runRiskEvaluation = async () => {
 
       // 5. Update area risk
       const riskLevelFixed = result.riskLevel?.toUpperCase() || "LOW";
-      await RiskZone.updateOne(
+      await Zone.updateOne(
         { _id: area._id },
         {
           riskLevel: riskLevelFixed.toLowerCase(),
@@ -125,7 +125,7 @@ export const runRiskEvaluation = async () => {
         const allow = await shouldCreateAlert(area._id, result.disasterType);
         if (!allow) continue;
 
-        const createdAlert = await DisasterAlert.create({
+        const createdAlert = await Alert.create({
           title: `${result.disasterType?.toUpperCase() || "EMERGENCY"} ALERT`,
           message: result.message,
           type: result.disasterType || "emergency",

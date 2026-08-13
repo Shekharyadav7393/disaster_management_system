@@ -111,7 +111,7 @@ const App = () => {
       <Route
         path="/admin/rescue"
         element={
-          <ProtectedRoute allowedRoles={["super_admin", "emergency_admin", "admin"]}>
+          <ProtectedRoute allowedRoles={["super_admin", "emergency_admin", "admin", "rescue", "rescue_team"]}>
             <AdminRescueStatus />
           </ProtectedRoute>
         }

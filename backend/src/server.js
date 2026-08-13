@@ -19,6 +19,7 @@ import morganMiddleware from "./middleware/morganMiddleware.js";
 const __filename = fileURLToPath(import.meta.url);
 
 import connectDB from "./config/db.js";
+import { setSocketIO } from "./config/socket.js";
 import { ensureUploadDir, FRONTEND_DIST_DIR, UPLOAD_DIR } from "./config/paths.js";
 import mongoose from "mongoose";
 import { protect, authorizeRoles, optionalUser, verifyToken } from "./middleware/authMiddleware.js";
@@ -47,6 +48,7 @@ import disasterTypeRoutes from "./routes/disasterTypeRoutes.js";
 import requestRoutes from "./routes/requestRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
+import configRoutes from "./routes/configRoutes.js";
 import User from "./models/User.js";
 
 dotenv.config();
@@ -113,6 +115,7 @@ const createApp = () => {
 
   // Attach io to app for controllers/middleware to access
   app.set("io", io);
+  setSocketIO(io);
 
   /* ── Global Middleware ── */
   app.use(helmet({
@@ -196,6 +199,7 @@ const createApp = () => {
   app.use("/api/requests", requestRoutes);
   app.use("/api/reviews", reviewRoutes);
   app.use("/api/ai", aiRoutes);
+  app.use("/api/config", configRoutes);
 
   if (hasFrontendBuild) {
     app.get("*", (req, res, next) => {

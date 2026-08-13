@@ -29,26 +29,30 @@ const resolveMongoUri = () => {
   return `mongodb://${credentials}${host}:${port}/${databaseName}${query}`;
 };
 
+const LOCAL_FALLBACK_URI = "mongodb://127.0.0.1:27017/disaster_management_system";
+
 /**
- * Connects to MongoDB using the URI from environment variables.
+ * Connects to MongoDB using the URI from environment variables with fallback to local.
  */
 const connectDB = async () => {
+  const mongoUri = resolveMongoUri() || LOCAL_FALLBACK_URI;
   try {
-    const mongoUri = resolveMongoUri();
-
-    if (!mongoUri) {
-      throw new Error(
-        "MongoDB connection settings are missing. Set MONGO_URI or MONGO_HOST."
-      );
-    }
-
     const conn = await mongoose.connect(mongoUri, {
       dbName: process.env.DB_NAME || 'disaster_management_system'
     });
     console.log(`[DATABASE] MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
-    console.error(`[DATABASE] MongoDB Connection Error: ${error.message}`);
-    process.exit(1);
+    console.warn(`[DATABASE] Primary Mongo Connection failed (${error.message}). Attempting local fallback...`);
+    try {
+      const conn = await mongoose.connect(LOCAL_FALLBACK_URI, {
+        dbName: process.env.DB_NAME || 'disaster_management_system'
+      });
+      console.log(`[DATABASE] Local Fallback MongoDB Connected: ${conn.connection.host}`);
+    } catch (fallbackError) {
+      console.error(`[DATABASE] All MongoDB connection attempts failed: ${fallbackError.message}`);
+      // Do not exit process immediately so server can run or provide clean error message
+      throw fallbackError;
+    }
   }
 };
 

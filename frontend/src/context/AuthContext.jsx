@@ -48,7 +48,12 @@ export const AuthProvider = ({ children }) => {
   // Track whether the initial auth check from localStorage is done
   const [initialized, setInitialized] = useState(false);
 
-  // On mount, verify stored auth is valid
+  const [publicConfig, setPublicConfig] = useState({
+    googleClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || "",
+    githubClientId: import.meta.env.VITE_GITHUB_CLIENT_ID || "",
+  });
+
+  // On mount, verify stored auth is valid and fetch public runtime config
   useEffect(() => {
     const storedUser = readStoredUser();
     const storedToken = readStoredToken();
@@ -63,6 +68,18 @@ export const AuthProvider = ({ children }) => {
       }
     }
     setInitialized(true);
+
+    api
+      .get("/config/public")
+      .then(({ data }) => {
+        if (data) {
+          setPublicConfig((prev) => ({
+            googleClientId: data.googleClientId || prev.googleClientId,
+            githubClientId: data.githubClientId || prev.githubClientId,
+          }));
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const login = async (credentials) => {
@@ -133,8 +150,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   const value = useMemo(
-    () => ({ user, token, login, externalLogin, logout, loading, initialized }),
-    [user, token, loading, initialized]
+    () => ({ user, token, login, externalLogin, logout, loading, initialized, publicConfig }),
+    [user, token, loading, initialized, publicConfig]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -18,17 +18,30 @@ if (typeof window !== "undefined") {
 }
 
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import { useAuth } from "./context/AuthContext.jsx";
 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "dummy-client-id.apps.googleusercontent.com";
+const DEFAULT_GOOGLE_CLIENT_ID = "564019635769-ji5j1t074gbc6vdr1aostcsbuublh7ug.apps.googleusercontent.com";
+
+const DynamicOAuthApp = () => {
+  const { publicConfig } = useAuth();
+  const clientId =
+    publicConfig?.googleClientId ||
+    import.meta.env.VITE_GOOGLE_CLIENT_ID ||
+    DEFAULT_GOOGLE_CLIENT_ID;
+
+  return (
+    <GoogleOAuthProvider clientId={clientId}>
+      <App />
+    </GoogleOAuthProvider>
+  );
+};
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>
-      <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
-      </GoogleOAuthProvider>
+      <AuthProvider>
+        <DynamicOAuthApp />
+      </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>
 );

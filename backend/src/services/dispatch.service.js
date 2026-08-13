@@ -1,6 +1,5 @@
-import RescueTeam from "../models/RescueTeam.js";
-import DispatchLog from "../models/DispatchLog.js";
-import RiskZone from "../models/RiskZone.js";
+import Team from "../models/Team.js";
+import Zone from "../models/Zone.js";
 import { haversineDistanceKm } from "../utils/haversine.js";
 
 const AVERAGE_SPEED_KMH = 40;
@@ -9,10 +8,7 @@ const computeEtaMinutes = (distanceKm) =>
   Math.max(1, Math.round((distanceKm / AVERAGE_SPEED_KMH) * 60));
 
 const computeZoneCenter = (zone) => {
-  // Simple polygon center by averaging vertices.
-  // This is sufficient for demo-level ETA and can be replaced with
-  // a more precise centroid later.
-  const coords = zone?.polygon?.coordinates?.[0] || [];
+  const coords = zone?.polygon?.coordinates?.[0] || zone?.coordinates || [];
   if (!coords.length) return null;
 
   const sum = coords.reduce(
@@ -23,12 +19,12 @@ const computeZoneCenter = (zone) => {
 };
 
 export const dispatchNearestTeamForAlert = async ({ alert, io }) => {
-  const zone = await RiskZone.findById(alert.zoneId).lean();
+  const zone = await Zone.findById(alert.zoneId).lean();
   const target = computeZoneCenter(zone);
   if (!target) return { dispatched: false, reason: "zone_center_missing" };
 
   // Find nearest available team using geo query
-  const team = await RescueTeam.findOne({
+  const team = await Team.findOne({
     status: "AVAILABLE",
     currentLocation: {
       $near: {
@@ -46,19 +42,8 @@ export const dispatchNearestTeamForAlert = async ({ alert, io }) => {
   team.lastUpdatedAt = new Date();
   await team.save();
 
-  const log = await DispatchLog.create({
-    alertId: alert._id,
-    zoneId: alert.zoneId,
-    rescueTeamId: team._id,
-    status: "DISPATCHED",
-    etaMinutes,
-    distanceKm,
-    timeline: [{ status: "DISPATCHED", timestamp: new Date() }],
-  });
-
   if (io) {
     io.emit("rescue.dispatched", {
-      id: log._id,
       alertId: alert._id,
       zoneId: alert.zoneId,
       rescueTeamId: team._id,
@@ -68,5 +53,5 @@ export const dispatchNearestTeamForAlert = async ({ alert, io }) => {
     });
   }
 
-  return { dispatched: true, log };
+  return { dispatched: true, teamId: team._id, etaMinutes, distanceKm };
 };

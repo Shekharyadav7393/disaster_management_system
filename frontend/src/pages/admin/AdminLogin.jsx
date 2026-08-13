@@ -8,8 +8,8 @@ const AdminLogin = () => {
 
   useEffect(() => {
     if (user) {
-      const role = user.role;
-      if (["admin", "super_admin", "emergency_admin"].includes(role)) {
+      const role = String(user.role || "").toLowerCase();
+      if (["admin", "super_admin", "emergency_admin", "rescue", "rescue_team"].includes(role)) {
         navigate("/admin", { replace: true });
       }
       // If a non-admin visits the admin login page, we let them stay so they can log in as an admin.
@@ -42,9 +42,9 @@ const AdminLogin = () => {
     setError("");
     const result = await login({ email: form.email, password: form.password });
     if (result.ok) {
-      const role = result.user?.role;
-      if (["admin", "super_admin", "emergency_admin"].includes(role)) {
-        navigate("/admin");
+      const role = String(result.user?.role || "").toLowerCase();
+      if (["admin", "super_admin", "emergency_admin", "rescue", "rescue_team"].includes(role)) {
+        navigate(role.includes("rescue") ? "/admin/rescue" : "/admin");
       } else {
         setError("Access denied. Admin credentials required.");
         // Clear the stored user since they don't have admin access
