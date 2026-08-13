@@ -6,7 +6,7 @@ import { getRedirectPath } from "../utils/authUtils.js";
 import { useGoogleLogin } from "@react-oauth/google";
 import "./Login.css";
 
-const GITHUB_CLIENT_ID = import.meta.env.VITE_GITHUB_CLIENT_ID || "dummy";
+const GITHUB_CLIENT_ID = import.meta.env.VITE_GITHUB_CLIENT_ID || DEFAULT_GITHUB_CLIENT_ID;
 const GITHUB_AUTH_URL = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&scope=user:email`;
 
 const getRequestErrorMessage = (err, fallback) => {
