@@ -32,24 +32,34 @@ const resolveMongoUri = () => {
 const LOCAL_FALLBACK_URI = "mongodb://127.0.0.1:27017/disaster_management_system";
 
 /**
- * Connects to MongoDB using the URI from environment variables with fallback to local.
+ * Connects to MongoDB with fast timeout and environment-aware fallback.
  */
 const connectDB = async () => {
-  const mongoUri = resolveMongoUri() || LOCAL_FALLBACK_URI;
-  try {
-    const conn = await mongoose.connect(mongoUri, {
-      dbName: process.env.DB_NAME || 'disaster_management_system'
-    });
-    console.log(`[DATABASE] MongoDB Connected: ${conn.connection.host}`);
-  } catch (error) {
-    console.warn(`[DATABASE] Primary Mongo Connection failed (${error.message}). Attempting local fallback...`);
+  const mongoUri = resolveMongoUri();
+  const options = {
+    dbName: process.env.DB_NAME || 'disaster_management_system',
+    serverSelectionTimeoutMS: 5000, // Fail fast (5s) instead of hanging 30s
+  };
+
+  if (mongoUri) {
     try {
-      const conn = await mongoose.connect(LOCAL_FALLBACK_URI, {
-        dbName: process.env.DB_NAME || 'disaster_management_system'
-      });
+      const conn = await mongoose.connect(mongoUri, options);
+      console.log(`[DATABASE] MongoDB Connected: ${conn.connection.host}`);
+      return;
+    } catch (error) {
+      console.error(`[DATABASE] Mongo Connection Error (${mongoUri.replace(/:([^@]+)@/, ':****@')}): ${error.message}`);
+    }
+  }
+
+  // Only attempt localhost fallback in non-production environments
+  const isProduction = process.env.NODE_ENV === 'production';
+  if (!isProduction) {
+    try {
+      console.log(`[DATABASE] Attempting local fallback: ${LOCAL_FALLBACK_URI}`);
+      const conn = await mongoose.connect(LOCAL_FALLBACK_URI, options);
       console.log(`[DATABASE] Local Fallback MongoDB Connected: ${conn.connection.host}`);
     } catch (fallbackError) {
-      console.error(`[DATABASE] MongoDB Connection Warning: Database currently unavailable (${fallbackError.message}). API will retry when requested.`);
+      console.error(`[DATABASE] Local fallback connection failed: ${fallbackError.message}`);
     }
   }
 };
