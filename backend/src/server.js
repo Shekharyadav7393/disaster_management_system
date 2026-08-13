@@ -268,7 +268,7 @@ export const startServer = async (options = {}) => {
   if (options.mongoUri) {
     process.env.MONGO_URI = options.mongoUri;
   }
-  await connectDB();
+  connectDB().catch((err) => console.error("[DATABASE] Async connection error:", err.message));
 
   if (options.seedFresh) {
     console.log("[SEEDING] Clearing database and seeding fresh admin...");

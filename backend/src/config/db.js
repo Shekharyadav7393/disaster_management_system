@@ -49,9 +49,7 @@ const connectDB = async () => {
       });
       console.log(`[DATABASE] Local Fallback MongoDB Connected: ${conn.connection.host}`);
     } catch (fallbackError) {
-      console.error(`[DATABASE] All MongoDB connection attempts failed: ${fallbackError.message}`);
-      // Do not exit process immediately so server can run or provide clean error message
-      throw fallbackError;
+      console.error(`[DATABASE] MongoDB Connection Warning: Database currently unavailable (${fallbackError.message}). API will retry when requested.`);
     }
   }
 };
