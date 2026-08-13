@@ -80,7 +80,11 @@ const corsOrigins = [
 
 const corsOptions = {
   origin(origin, callback) {
-    if (!origin || corsOrigins.includes(origin)) {
+    if (
+      !origin ||
+      corsOrigins.includes(origin) ||
+      /\.onrender\.com$/.test(origin)
+    ) {
       callback(null, true);
       return;
     }
@@ -168,9 +172,21 @@ const createApp = () => {
     });
   });
 
-  /* ── Health Check ── */
+  /* ── Health & Root Check ── */
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok", message: "Disaster Management API running" });
+  });
+
+  app.get("/", (_req, res) => {
+    if (hasFrontendBuild) {
+      return res.sendFile(path.join(FRONTEND_DIST_DIR, "index.html"));
+    }
+    return res.json({
+      status: "ok",
+      message: "Disaster Management System API Backend is Running",
+      healthCheck: "/api/health",
+      endpoints: "/api/*",
+    });
   });
 
   /* ── Mount Routes ── */
