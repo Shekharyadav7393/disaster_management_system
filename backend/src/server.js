@@ -56,8 +56,8 @@ dotenv.config();
 const DEFAULT_CORS_ORIGINS = [
   "http://localhost:5173",
   "http://localhost:3000",
-  "https://disaster-management-system-1-a2bz.onrender.com",
-  "https://disaster-management-system-1-hkan.onrender.com",
+  "https://disaster-management-f9n6.onrender.com",
+  "https://disaster-management-system-pmmb.onrender.com",
 ];
 
 const parseOriginList = (...values) =>
