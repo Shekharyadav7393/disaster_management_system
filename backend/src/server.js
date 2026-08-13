@@ -287,16 +287,19 @@ export const startServer = async (options = {}) => {
   connectDB().catch((err) => console.error("[DATABASE] Async connection error:", err.message));
 
   if (options.seedFresh) {
-    console.log("[SEEDING] Clearing database and seeding fresh admin...");
+    console.log("[SEEDING] Clearing database and setting up genuine admin...");
     await mongoose.connection.db.dropDatabase();
-    await User.create({
-      name: "Super Admin",
-      email: "admin@disasterms.local",
-      password: "admin123",
+    const admin = new User({
+      name: "Shekhar Yadav",
+      email: "ahirshekhar7393@gmail.com",
+      password: "sandeepy00@@",
       role: "admin",
-      phone: "+91 00000 00000",
-      isVerified: true
+      phone: "+91 73930 00000",
+      isVerified: true,
+      isActive: true,
+      authProvider: "local",
     });
+    await admin.save();
   }
   
   const instance = createApp();

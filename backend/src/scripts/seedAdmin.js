@@ -1,5 +1,4 @@
 import connectDB from "../config/db.js";
-import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
 import User from "../models/User.js";
 
@@ -10,37 +9,28 @@ const seedAdmin = async () => {
     console.log("Connecting to MongoDB...");
     await connectDB();
 
-    const hashed = await bcrypt.hash("admin123", 10);
-
-    await User.findOneAndUpdate(
-      { email: "admin@disasterms.local" },
-      {
-        name: "System Admin",
-        email: "admin@disasterms.local",
-        password: hashed,
+    let admin = await User.findOne({ email: "ahirshekhar7393@gmail.com" });
+    if (!admin) {
+      admin = new User({
+        name: "Shekhar Yadav",
+        email: "ahirshekhar7393@gmail.com",
+        password: "sandeepy00@@",
         role: "admin",
-        phone: "+91 99999 00001",
+        phone: "+91 73930 00000",
         isActive: true,
         isVerified: true,
-      },
-      { upsert: true }
-    );
+        authProvider: "local",
+      });
+      await admin.save();
+    } else {
+      admin.password = "sandeepy00@@";
+      admin.role = "admin";
+      admin.isActive = true;
+      admin.isVerified = true;
+      await admin.save();
+    }
 
-    await User.findOneAndUpdate(
-      { email: "admin@idmews.com" },
-      {
-        name: "System Admin",
-        email: "admin@idmews.com",
-        password: hashed,
-        role: "admin",
-        phone: "+91 99999 99999",
-        isActive: true,
-        isVerified: true,
-      },
-      { upsert: true }
-    );
-
-    console.log("Admins Ready: admin@disasterms.local / admin123 and admin@idmews.com / admin123");
+    console.log("Genuine Admin Ready: ahirshekhar7393@gmail.com");
     process.exit(0);
   } catch (error) {
     console.error("Seed failed:", error.message);
